@@ -17,9 +17,7 @@ class GPSController(Controller):
     def get_gps(self, state: State) -> dict:
 
         # Ask MAVLink2Rest for the latest GLOBAL_POSITION_INT message
-        response = requests.get(
-            f"{state.mavlink_url}/vehicles/1/components/1/messages/GLOBAL_POSITION_INT"
-        )
+        response = requests.get("http://host.docker.internal/mavlink2rest/mavlink/vehicles/1/components/1/messages/GLOBAL_POSITION_INT")
         response.raise_for_status()
 
         message = response.json()["message"]
