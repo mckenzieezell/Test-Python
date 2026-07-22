@@ -9,6 +9,7 @@ classifiers = [
 ]
 dependencies = [
     "requests",
-    "litestar[standard]",
+    "litestar",
+    "uvicorn",
 ]
 
