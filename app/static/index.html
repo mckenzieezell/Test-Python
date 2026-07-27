@@ -1,50 +1,37 @@
 <html>
 
 <head>
-    <title> Mavlink example
-    </title>
+    <title>MAVLink example</title>
 </head>
 
 <body>
-    <h1> Display of MAVLink Data</h1>
-    <h2> Altitude Data </h2>
-    <h3> Your current attitude is: Roll:<span id="roll">--.-</span> Pitch:<span id="pitch">--.-</span> Yaw:<span id="yaw">--.-</span></h3>
-    <h3> Last updated: <span id="last_alt">--.-</span> seconds ago</h3>
+    <h1>Display of MAVLink Data</h1>
 
-    <h2> Global Position Data </h2>
-    <h3> Your current position is: Heading:<span id="hdg">--.-</span> Latitude:<span id="lat">--.-</span> Longitude:<span id="lon">--.-</span></h3>
-    <h3> Last updated: <span id="last_gps">--.-</span> seconds ago</h3>
+    <h2>Global Position Data</h2>
+
+    <h3>
+        Heading: <span id="hdg">--.-</span>
+        Latitude: <span id="lat">--.-</span>
+        Longitude: <span id="lon">--.-</span>
+    </h3>
+
+    <h3>
+        Last updated:
+        <span id="last_gps">--.-</span>
+        seconds ago
+    </h3>
+
+    <script>
+        async function updateGPS() {
+            const response = await fetch("/gps");
+            const data = await response.json();
+
+            document.getElementById("lat").textContent = data.latitude.toFixed(6);
+            document.getElementById("lon").textContent = data.longitude.toFixed(6);
+            document.getElementById("hdg").textContent = data.heading.toFixed(1);
+        }
+    </script>
+
 </body>
-
-
-<script>
-    //const mavlink2rest_url = `http://${document.location.hostname}/mavlink2rest`
-    const mavlink2rest_url = `http://blueos.local/mavlink2rest`
-    const attitude_url = mavlink2rest_url + '/mavlink/vehicles/1/components/1/messages/ATTITUDE'
-    const global_position_int_url = mavlink2rest_url + '/mavlink/vehicles/1/components/1/messages/GLOBAL_POSITION_INT'
-
-    setInterval(async () => {
-        const response_alt = await fetch(attitude_url);
-        const data_alt = await response_alt.json();
-        const payload_alt = data_alt["message"]
-        const last_updated_alt = data_alt["status"]["time"]["last_update"]
-        document.getElementById("roll").innerText = (payload_alt["roll"] / Math.PI * 180).toFixed(1)
-        document.getElementById("pitch").innerText = (payload_alt["pitch"] / Math.PI * 180).toFixed(1)
-        document.getElementById("yaw").innerText = (payload_alt["yaw"] / Math.PI * 180).toFixed(1)
-        document.getElementById("last_alt").innerText = ((Date.now() - Date.parse(last_updated_alt)) / 1000).toFixed(1)
-
-        const response_gps = await fetch(global_position_int_url);
-        const data_gps = await response_gps.json();
-        const payload_gps = data_gps["message"]
-        const last_updated_gps = data_gps["status"]["time"]["last_update"]
-        document.getElementById("lat").innerText = (payload_gps["lat"] / 10000000).toFixed(6)
-        document.getElementById("lon").innerText = (payload_gps["lon"] / 10000000).toFixed(6)
-        document.getElementById("hdg").innerText = (payload_gps["hdg"] / 100).toFixed(1)
-        document.getElementById("last_gps").innerText = ((Date.now() - Date.parse(last_updated_gps)) / 1000).toFixed(1)
-
-        
-    }, 1000)
-
-</script>
 
 </html>
