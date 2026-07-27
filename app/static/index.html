@@ -24,14 +24,14 @@
                 if (!response.ok) throw new Error(`Status ${response.status}`);
                 const data = await response.json();
 
+                document.getElementById("hdg").textContent = data.heading.toFixed(1);
+
                 if (data.has_fix) {
                     document.getElementById("lat").textContent = data.latitude.toFixed(6);
                     document.getElementById("lon").textContent = data.longitude.toFixed(6);
-                    document.getElementById("hdg").textContent = data.heading.toFixed(1);
                 } else {
                     document.getElementById("lat").textContent = "No GPS data available";
                     document.getElementById("lon").textContent = "No GPS data available";
-                    document.getElementById("hdg").textContent = "No GPS data available";
                 }
 
                 lastUpdateTime = Date.now();
