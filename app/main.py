@@ -23,6 +23,17 @@ class GPSController(Controller):
             raise HTTPException(status_code=502, detail=f"MAVLink2Rest unreachable: {e}")
         except KeyError as e:
             raise HTTPException(status_code=502, detail=f"Missing key in GPS_RAW_INT response: {e}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Unexpected error reading GPS_RAW_INT: {type(e).__name__}: {e}")
+
+        if fix_type is None:
+            return {
+                "has_fix": False,
+                "fix_type": None,
+                "latitude": None,
+                "longitude": None,
+                "heading": None,
+            }
 
         if fix_type < MIN_USABLE_FIX_TYPE:
             return {
@@ -41,6 +52,8 @@ class GPSController(Controller):
             raise HTTPException(status_code=502, detail=f"MAVLink2Rest unreachable: {e}")
         except KeyError as e:
             raise HTTPException(status_code=502, detail=f"Missing key in response: {e}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Unexpected error reading GLOBAL_POSITION_INT: {type(e).__name__}: {e}")
 
         return {
             "has_fix": True,
