@@ -1,40 +1,38 @@
 <html>
-
 <head>
-    <title>MAVLink Example</title>
+    <title>MAVLink example</title>
 </head>
-
 <body>
     <h1>Display of MAVLink Data</h1>
-
     <h2>Global Position Data</h2>
-
     <h3>
-        Heading: <span id="hdg">--.-</span><br>
-        Latitude: <span id="lat">--.-</span><br>
+        Heading: <span id="hdg">--.-</span>
+        Latitude: <span id="lat">--.-</span>
         Longitude: <span id="lon">--.-</span>
     </h3>
-
     <h3>
-        Last updated: <span id="last_gps">--.-</span> seconds ago
+        Last updated:
+        <span id="last_gps">--.-</span>
+        seconds ago
     </h3>
-
     <script>
         let lastUpdateTime = Date.now();
 
         async function updateGPS() {
             try {
                 const response = await fetch("/gps");
-
-                if (!response.ok) {
-                    throw new Error(`Status ${response.status}`);
-                }
-
+                if (!response.ok) throw new Error(`Status ${response.status}`);
                 const data = await response.json();
 
-                document.getElementById("lat").textContent = data.latitude.toFixed(6);
-                document.getElementById("lon").textContent = data.longitude.toFixed(6);
-                document.getElementById("hdg").textContent = data.heading.toFixed(1);
+                if (data.has_fix) {
+                    document.getElementById("lat").textContent = data.latitude.toFixed(6);
+                    document.getElementById("lon").textContent = data.longitude.toFixed(6);
+                    document.getElementById("hdg").textContent = data.heading.toFixed(1);
+                } else {
+                    document.getElementById("lat").textContent = "No GPS data available";
+                    document.getElementById("lon").textContent = "No GPS data available";
+                    document.getElementById("hdg").textContent = "No GPS data available";
+                }
 
                 lastUpdateTime = Date.now();
             } catch (err) {
@@ -51,7 +49,5 @@
         setInterval(updateGPS, 1000);
         setInterval(updateLastGPS, 100);
     </script>
-
 </body>
-
 </html>
