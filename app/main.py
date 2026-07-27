@@ -13,8 +13,10 @@ class GPSController(Controller):
     def get_gps(self) -> dict:
 
         # Ask MAVLink2Rest for the latest GLOBAL_POSITION_INT message
-        response = requests.get("http://blueos.local/mavlink2rest/mavlink/vehicles/1/components/1/messages/GLOBAL_POSITION_INT")
-        response.raise_for_status()
+        response = requests.get(
+            "http://host.docker.internal/mavlink2rest/mavlink/vehicles/1/components/1/messages/GLOBAL_POSITION_INT",
+            timeout=2,
+        )
 
         message = response.json()["message"]
 
