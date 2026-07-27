@@ -1,7 +1,7 @@
 <html>
 
 <head>
-    <title>MAVLink example</title>
+    <title>MAVLink Example</title>
 </head>
 
 <body>
@@ -10,26 +10,46 @@
     <h2>Global Position Data</h2>
 
     <h3>
-        Heading: <span id="hdg">--.-</span>
-        Latitude: <span id="lat">--.-</span>
+        Heading: <span id="hdg">--.-</span><br>
+        Latitude: <span id="lat">--.-</span><br>
         Longitude: <span id="lon">--.-</span>
     </h3>
 
     <h3>
-        Last updated:
-        <span id="last_gps">--.-</span>
-        seconds ago
+        Last updated: <span id="last_gps">--.-</span> seconds ago
     </h3>
 
     <script>
-        async function updateGPS() {
-            const response = await fetch("/gps");
-            const data = await response.json();
+        let lastUpdateTime = Date.now();
 
-            document.getElementById("lat").textContent = data.latitude.toFixed(6);
-            document.getElementById("lon").textContent = data.longitude.toFixed(6);
-            document.getElementById("hdg").textContent = data.heading.toFixed(1);
+        async function updateGPS() {
+            try {
+                const response = await fetch("/gps");
+
+                if (!response.ok) {
+                    throw new Error(`Status ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                document.getElementById("lat").textContent = data.latitude.toFixed(6);
+                document.getElementById("lon").textContent = data.longitude.toFixed(6);
+                document.getElementById("hdg").textContent = data.heading.toFixed(1);
+
+                lastUpdateTime = Date.now();
+            } catch (err) {
+                console.error("Failed to update GPS:", err);
+            }
         }
+
+        function updateLastGPS() {
+            const seconds = ((Date.now() - lastUpdateTime) / 1000).toFixed(1);
+            document.getElementById("last_gps").textContent = seconds;
+        }
+
+        updateGPS();
+        setInterval(updateGPS, 1000);
+        setInterval(updateLastGPS, 100);
     </script>
 
 </body>
