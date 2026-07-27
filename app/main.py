@@ -3,66 +3,26 @@ import requests
 from litestar import Litestar, get
 from litestar.controller import Controller
 from litestar.static_files.config import StaticFilesConfig
-from litestar.exceptions import HTTPException
-
-
-MAVLINK2REST_BASE = "http://host.docker.internal/mavlink2rest/mavlink/vehicles/1/components/1/messages"
-
-# GPS_RAW_INT fix_type values: 0=no GPS, 1=no fix, 2=2D fix, 3=3D fix, 4/5=DGPS/RTK
-MIN_USABLE_FIX_TYPE = 3
-
 
 class GPSController(Controller):
     @get("/gps", sync_to_thread=True)
     def get_gps(self) -> dict:
-        try:
-            gps_raw_response = requests.get(f"{MAVLINK2REST_BASE}/GPS_RAW_INT", timeout=2)
-            gps_raw_response.raise_for_status()
-            fix_type = gps_raw_response.json()["message"]["fix_type"]
-        except requests.RequestException as e:
-            raise HTTPException(status_code=502, detail=f"MAVLink2Rest unreachable: {e}")
-        except KeyError as e:
-            raise HTTPException(status_code=502, detail=f"Missing key in GPS_RAW_INT response: {e}")
-        except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Unexpected error reading GPS_RAW_INT: {type(e).__name__}: {e}")
+        response = requests.get("http://host.docker.internal/mavlink2rest/mavlink/vehicles/1/components/1/messages/GLOBAL_POSITION_INT")
+        response.raise_for_status()
+        message = response.json()["message"]
 
-        if fix_type is None:
-            return {
-                "has_fix": False,
-                "fix_type": None,
-                "latitude": None,
-                "longitude": None,
-                "heading": None,
-            }
+        lat = message["lat"] / 1e7
+        lon = message["lon"] / 1e7
 
-        if fix_type < MIN_USABLE_FIX_TYPE:
-            return {
-                "has_fix": False,
-                "fix_type": fix_type,
-                "latitude": None,
-                "longitude": None,
-                "heading": None,
-            }
-
-        try:
-            response = requests.get(f"{MAVLINK2REST_BASE}/GLOBAL_POSITION_INT", timeout=2)
-            response.raise_for_status()
-            message = response.json()["message"]
-        except requests.RequestException as e:
-            raise HTTPException(status_code=502, detail=f"MAVLink2Rest unreachable: {e}")
-        except KeyError as e:
-            raise HTTPException(status_code=502, detail=f"Missing key in response: {e}")
-        except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Unexpected error reading GLOBAL_POSITION_INT: {type(e).__name__}: {e}")
+        # lat/lon come back as exactly 0,0 when there's no GPS data at all
+        has_fix = not (lat == 0 and lon == 0)
 
         return {
-            "has_fix": True,
-            "fix_type": fix_type,
-            "latitude": message["lat"] / 1e7,
-            "longitude": message["lon"] / 1e7,
+            "has_fix": has_fix,
+            "latitude": lat if has_fix else None,
+            "longitude": lon if has_fix else None,
             "heading": message["hdg"] / 100,
         }
-
 
 app = Litestar(
     route_handlers=[GPSController],
