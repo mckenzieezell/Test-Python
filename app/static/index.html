@@ -2,14 +2,18 @@
 <head>
     <title>MAVLink example</title>
 </head>
+
 <body>
     <h1>Display of MAVLink Data</h1>
+
     <h2>Global Position Data</h2>
+
     <h3>
         Heading: <span id="hdg">--.-</span> <br>
         Latitude: <span id="lat">--.-</span> <br>
         Longitude: <span id="lon">--.-</span> <br>
     </h3>
+
     <h3>
         Last updated:
         <span id="last_gps">--.-</span>
@@ -17,14 +21,36 @@
     </h3>
 
     <h2>Vehicle Mode</h2>
+
     <h3>
-        Current mode: <span id="current_mode">--</span>
+        Current mode:
+        <span id="current_mode">--</span>
     </h3>
+
     <button onclick="setMode('hold')">HOLD</button>
     <button onclick="setMode('guided')">GUIDED</button>
     <button onclick="setMode('manual')">MANUAL</button>
-    <button onclick="setMode('auto')">AUTO</button>
+    <button onclick="setMode('rtl')">RTL</button>
+
     <p id="mode_status"></p>
+
+    <hr>
+
+    <h2>Mission Waypoint</h2>
+
+    <p>
+        Latitude:<br>
+        <input type="number" id="wp_lat" step="0.000001" placeholder="41.480000">
+    </p>
+
+    <p>
+        Longitude:<br>
+        <input type="number" id="wp_lon" step="0.000001" placeholder="-71.310000">
+    </p>
+
+    <button onclick="sendWaypoint()">Upload Waypoint</button>
+
+    <p id="wp_status"></p>
 
     <script>
         let lastUpdateTime = Date.now();
@@ -33,17 +59,29 @@
             try {
                 const response = await fetch("/gps");
                 if (!response.ok) throw new Error(`Status ${response.status}`);
+
                 const data = await response.json();
-                document.getElementById("hdg").textContent = data.heading.toFixed(1);
+
+                document.getElementById("hdg").textContent =
+                    data.heading != null ? data.heading.toFixed(1) : "--.-";
+
                 if (data.has_fix) {
-                    document.getElementById("lat").textContent = data.latitude.toFixed(6);
-                    document.getElementById("lon").textContent = data.longitude.toFixed(6);
+                    document.getElementById("lat").textContent =
+                        data.latitude.toFixed(6);
+
+                    document.getElementById("lon").textContent =
+                        data.longitude.toFixed(6);
                 } else {
-                    document.getElementById("lat").textContent = "No GPS data available";
-                    document.getElementById("lon").textContent = "No GPS data available";
+                    document.getElementById("lat").textContent =
+                        "No GPS data available";
+
+                    document.getElementById("lon").textContent =
+                        "No GPS data available";
                 }
+
                 lastUpdateTime = Date.now();
-            } catch (err) {
+            }
+            catch (err) {
                 console.error("Failed to update GPS:", err);
             }
         }
@@ -56,40 +94,116 @@
         async function updateCurrentMode() {
             try {
                 const response = await fetch("/mode/current");
-                if (!response.ok) throw new Error(`Status ${response.status}`);
+
+                if (!response.ok)
+                    throw new Error(`Status ${response.status}`);
+
                 const data = await response.json();
-                document.getElementById("current_mode").textContent = data.mode_name;
-            } catch (err) {
-                console.error("Failed to fetch current mode:", err);
-                document.getElementById("current_mode").textContent = "unknown";
+
+                document.getElementById("current_mode").textContent =
+                    data.mode_name;
+            }
+            catch (err) {
+                console.error(err);
+                document.getElementById("current_mode").textContent =
+                    "unknown";
             }
         }
 
         async function setMode(modeName) {
-            const statusEl = document.getElementById("mode_status");
-            statusEl.textContent = `Switching to ${modeName.toUpperCase()}...`;
+
+            const statusEl =
+                document.getElementById("mode_status");
+
+            statusEl.textContent =
+                `Switching to ${modeName.toUpperCase()}...`;
+
             try {
-                const response = await fetch(`/mode/${modeName}`, { method: "POST" });
-                if (!response.ok) throw new Error(`Status ${response.status}`);
+
+                const response = await fetch(`/mode/${modeName}`, {
+                    method: "POST"
+                });
+
+                if (!response.ok)
+                    throw new Error(`Status ${response.status}`);
+
                 const data = await response.json();
+
                 if (data.status === "ok") {
-                    statusEl.textContent = `Mode set to ${data.mode}`;
+                    statusEl.textContent =
+                        `Mode set to ${data.mode}`;
                 } else {
-                    statusEl.textContent = `Error: ${data.message}`;
+                    statusEl.textContent =
+                        `Error: ${data.message}`;
                 }
+
             } catch (err) {
-                statusEl.textContent = `Failed to set mode: ${err}`;
-                console.error("Failed to set mode:", err);
+
+                statusEl.textContent =
+                    `Failed to set mode: ${err}`;
+
+                console.error(err);
             }
-            // give the vehicle a moment to actually switch before re-checking
+
             setTimeout(updateCurrentMode, 500);
+        }
+
+        async function sendWaypoint() {
+
+            const lat =
+                parseFloat(document.getElementById("wp_lat").value);
+
+            const lon =
+                parseFloat(document.getElementById("wp_lon").value);
+
+            const status =
+                document.getElementById("wp_status");
+
+            if (isNaN(lat) || isNaN(lon)) {
+                status.textContent =
+                    "Please enter a valid latitude and longitude.";
+                return;
+            }
+
+            status.textContent = "Uploading waypoint...";
+
+            try {
+
+                const response = await fetch("/waypoint", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        latitude: lat,
+                        longitude: lon
+                    })
+                });
+
+                if (!response.ok)
+                    throw new Error(`Status ${response.status}`);
+
+                const data = await response.json();
+
+                status.textContent = data.message;
+
+            }
+            catch (err) {
+
+                console.error(err);
+
+                status.textContent =
+                    "Failed to upload waypoint.";
+            }
         }
 
         updateGPS();
         updateCurrentMode();
+
         setInterval(updateGPS, 1000);
-        setInterval(updateLastGPS, 100);
         setInterval(updateCurrentMode, 1000);
+        setInterval(updateLastGPS, 100);
     </script>
+
 </body>
 </html>
