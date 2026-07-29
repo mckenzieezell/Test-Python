@@ -15,6 +15,17 @@
         <span id="last_gps">--.-</span>
         seconds ago
     </h3>
+
+    <h2>Vehicle Mode</h2>
+    <h3>
+        Current mode: <span id="current_mode">--</span>
+    </h3>
+    <button onclick="setMode('hold')">HOLD</button>
+    <button onclick="setMode('guided')">GUIDED</button>
+    <button onclick="setMode('manual')">MANUAL</button>
+    <button onclick="setMode('rtl')">RTL</button>
+    <p id="mode_status"></p>
+
     <script>
         let lastUpdateTime = Date.now();
 
@@ -23,9 +34,7 @@
                 const response = await fetch("/gps");
                 if (!response.ok) throw new Error(`Status ${response.status}`);
                 const data = await response.json();
-
                 document.getElementById("hdg").textContent = data.heading.toFixed(1);
-
                 if (data.has_fix) {
                     document.getElementById("lat").textContent = data.latitude.toFixed(6);
                     document.getElementById("lon").textContent = data.longitude.toFixed(6);
@@ -33,7 +42,6 @@
                     document.getElementById("lat").textContent = "No GPS data available";
                     document.getElementById("lon").textContent = "No GPS data available";
                 }
-
                 lastUpdateTime = Date.now();
             } catch (err) {
                 console.error("Failed to update GPS:", err);
@@ -45,9 +53,43 @@
             document.getElementById("last_gps").textContent = seconds;
         }
 
+        async function updateCurrentMode() {
+            try {
+                const response = await fetch("/mode/current");
+                if (!response.ok) throw new Error(`Status ${response.status}`);
+                const data = await response.json();
+                document.getElementById("current_mode").textContent = data.mode_name;
+            } catch (err) {
+                console.error("Failed to fetch current mode:", err);
+                document.getElementById("current_mode").textContent = "unknown";
+            }
+        }
+
+        async function setMode(modeName) {
+            const statusEl = document.getElementById("mode_status");
+            statusEl.textContent = `Switching to ${modeName.toUpperCase()}...`;
+            try {
+                const response = await fetch(`/mode/${modeName}`, { method: "POST" });
+                if (!response.ok) throw new Error(`Status ${response.status}`);
+                const data = await response.json();
+                if (data.status === "ok") {
+                    statusEl.textContent = `Mode set to ${data.mode}`;
+                } else {
+                    statusEl.textContent = `Error: ${data.message}`;
+                }
+            } catch (err) {
+                statusEl.textContent = `Failed to set mode: ${err}`;
+                console.error("Failed to set mode:", err);
+            }
+            // give the vehicle a moment to actually switch before re-checking
+            setTimeout(updateCurrentMode, 500);
+        }
+
         updateGPS();
+        updateCurrentMode();
         setInterval(updateGPS, 1000);
         setInterval(updateLastGPS, 100);
+        setInterval(updateCurrentMode, 1000);
     </script>
 </body>
 </html>
