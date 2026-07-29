@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+
 import requests
 from litestar import Litestar, get, post
 from litestar.controller import Controller
-from litestar.response import File
+from litestar.response import Response
 
 MAVLINK2REST_BASE = "http://host.docker.internal/mavlink2rest"
 
@@ -20,13 +21,18 @@ ROVER_MODES = {
     "smart_rtl": 12,
     "guided": 15,
 }
+
 ROVER_MODES_BY_NUMBER = {v: k for k, v in ROVER_MODES.items()}
 
 
 class IndexController(Controller):
     @get("/", sync_to_thread=False)
-    def index(self) -> File:
-        return File(path="app/static/index.html", filename="index.html")
+    def index(self) -> Response:
+        with open("app/static/index.html", "r", encoding="utf-8") as f:
+            return Response(
+                content=f.read(),
+                media_type="text/html",
+            )
 
 
 class RegisterServiceController(Controller):
@@ -50,11 +56,15 @@ class GPSController(Controller):
             f"{MAVLINK2REST_BASE}/mavlink/vehicles/1/components/1/messages/GLOBAL_POSITION_INT"
         )
         response.raise_for_status()
+
         message = response.json()["message"]
+
         lat = message["lat"] / 1e7
         lon = message["lon"] / 1e7
-        # lat/lon come back as exactly 0,0 when there's no GPS data at all
+
+        # lat/lon come back as exactly 0,0 when there's no GPS fix
         has_fix = not (lat == 0 and lon == 0)
+
         return {
             "has_fix": has_fix,
             "latitude": lat if has_fix else None,
@@ -67,11 +77,19 @@ class ModeController(Controller):
     @post("/mode/{mode_name:str}", sync_to_thread=True)
     def set_mode(self, mode_name: str) -> dict:
         mode_num = ROVER_MODES.get(mode_name.lower())
+
         if mode_num is None:
-            return {"status": "error", "message": f"unknown mode: {mode_name}"}
+            return {
+                "status": "error",
+                "message": f"unknown mode: {mode_name}",
+            }
 
         payload = {
-            "header": {"system_id": 255, "component_id": 0, "sequence": 0},
+            "header": {
+                "system_id": 255,
+                "component_id": 0,
+                "sequence": 0,
+            },
             "message": {
                 "type": "COMMAND_LONG",
                 "param1": 1,  # MAV_MODE_FLAG_CUSTOM_MODE_ENABLED
@@ -81,15 +99,25 @@ class ModeController(Controller):
                 "param5": 0,
                 "param6": 0,
                 "param7": 0,
-                "command": {"type": "MAV_CMD_DO_SET_MODE"},
+                "command": {
+                    "type": "MAV_CMD_DO_SET_MODE"
+                },
                 "target_system": 1,
                 "target_component": 1,
                 "confirmation": 0,
             },
         }
-        response = requests.post(f"{MAVLINK2REST_BASE}/mavlink", json=payload)
+
+        response = requests.post(
+            f"{MAVLINK2REST_BASE}/mavlink",
+            json=payload,
+        )
         response.raise_for_status()
-        return {"status": "ok", "mode": mode_name.upper()}
+
+        return {
+            "status": "ok",
+            "mode": mode_name.upper(),
+        }
 
     @get("/mode/current", sync_to_thread=True)
     def get_current_mode(self) -> dict:
@@ -97,9 +125,12 @@ class ModeController(Controller):
             f"{MAVLINK2REST_BASE}/mavlink/vehicles/1/components/1/messages/HEARTBEAT"
         )
         response.raise_for_status()
+
         message = response.json()["message"]
+
         custom_mode = message["custom_mode"]
         mode_name = ROVER_MODES_BY_NUMBER.get(custom_mode, "unknown")
+
         return {
             "custom_mode": custom_mode,
             "mode_name": mode_name.upper(),
