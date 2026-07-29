@@ -2,7 +2,7 @@
 import requests
 from litestar import Litestar, get, post
 from litestar.controller import Controller
-from litestar.static_files.config import StaticFilesConfig
+from litestar.response import File
 
 MAVLINK2REST_BASE = "http://host.docker.internal/mavlink2rest"
 
@@ -21,6 +21,12 @@ ROVER_MODES = {
     "guided": 15,
 }
 ROVER_MODES_BY_NUMBER = {v: k for k, v in ROVER_MODES.items()}
+
+
+class IndexController(Controller):
+    @get("/", sync_to_thread=False)
+    def index(self) -> File:
+        return File(path="app/static/index.html", filename="index.html")
 
 
 class GPSController(Controller):
@@ -87,12 +93,5 @@ class ModeController(Controller):
 
 
 app = Litestar(
-    route_handlers=[GPSController, ModeController],
-    static_files_config=[
-        StaticFilesConfig(
-            directories=["app/static"],
-            path="/",
-            html_mode=True,
-        )
-    ],
+    route_handlers=[IndexController, GPSController, ModeController],
 )
