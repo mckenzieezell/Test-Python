@@ -29,6 +29,20 @@ class IndexController(Controller):
         return File(path="app/static/index.html", filename="index.html")
 
 
+class RegisterServiceController(Controller):
+    @get("/register_service", sync_to_thread=False)
+    def register_service(self) -> dict:
+        return {
+            "name": "BlueBoat GPS & Mode Control",
+            "description": "Displays GPS position and lets you switch vehicle modes",
+            "icon": "mdi-map-marker",
+            "company": "Your Company",
+            "version": "1.0.0",
+            "webpage": "https://example.com",
+            "api": "",
+        }
+
+
 class GPSController(Controller):
     @get("/gps", sync_to_thread=True)
     def get_gps(self) -> dict:
@@ -93,5 +107,10 @@ class ModeController(Controller):
 
 
 app = Litestar(
-    route_handlers=[IndexController, GPSController, ModeController],
+    route_handlers=[
+        IndexController,
+        RegisterServiceController,
+        GPSController,
+        ModeController,
+    ],
 )
