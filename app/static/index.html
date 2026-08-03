@@ -15,7 +15,6 @@
         <span id="last_gps">--.-</span>
         seconds ago
     </h3>
-
     <h2>Vehicle Mode</h2>
     <h3>
         Current mode: <span id="current_mode">--</span>
@@ -26,14 +25,23 @@
     <button onclick="setMode('auto')">AUTO</button>
     <p id="mode_status"></p>
 
+    <h2>Waypoint</h2>
+    <label>Latitude: <input type="text" id="wp_lat" placeholder="e.g. 41.4901"></label><br>
+    <label>Longitude: <input type="text" id="wp_lon" placeholder="e.g. -71.4128"></label><br>
+    <button onclick="goToWaypoint()">Go to Waypoint</button>
+    <button onclick="useCurrentPositionAsWaypoint()">Fill with current position</button>
+    <p id="waypoint_status"></p>
+
     <script>
         let lastUpdateTime = Date.now();
+        let lastGPS = null; // cache the latest fix so "use current position" works
 
         async function updateGPS() {
             try {
                 const response = await fetch("/gps");
                 if (!response.ok) throw new Error(`Status ${response.status}`);
                 const data = await response.json();
+                lastGPS = data;
                 document.getElementById("hdg").textContent = data.heading.toFixed(1);
                 if (data.has_fix) {
                     document.getElementById("lat").textContent = data.latitude.toFixed(6);
@@ -83,6 +91,44 @@
             }
             // give the vehicle a moment to actually switch before re-checking
             setTimeout(updateCurrentMode, 500);
+        }
+
+        async function goToWaypoint() {
+            const statusEl = document.getElementById("waypoint_status");
+            const lat = parseFloat(document.getElementById("wp_lat").value);
+            const lon = parseFloat(document.getElementById("wp_lon").value);
+
+            if (isNaN(lat) || isNaN(lon)) {
+                statusEl.textContent = "Enter a valid latitude and longitude";
+                return;
+            }
+
+            statusEl.textContent = "Sending waypoint...";
+            try {
+                const response = await fetch("/waypoint", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ latitude: lat, longitude: lon }),
+                });
+                if (!response.ok) throw new Error(`Status ${response.status}`);
+                const data = await response.json();
+                if (data.status === "ok") {
+                    statusEl.textContent = `Heading to ${data.latitude.toFixed(6)}, ${data.longitude.toFixed(6)}`;
+                } else {
+                    statusEl.textContent = `Error: ${data.message}`;
+                }
+            } catch (err) {
+                statusEl.textContent = `Failed to send waypoint: ${err}`;
+                console.error("Failed to send waypoint:", err);
+            }
+            setTimeout(updateCurrentMode, 500);
+        }
+
+        function useCurrentPositionAsWaypoint() {
+            if (lastGPS && lastGPS.has_fix) {
+                document.getElementById("wp_lat").value = lastGPS.latitude.toFixed(6);
+                document.getElementById("wp_lon").value = lastGPS.longitude.toFixed(6);
+            }
         }
 
         updateGPS();
