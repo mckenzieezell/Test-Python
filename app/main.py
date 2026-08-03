@@ -39,12 +39,12 @@ class RegisterServiceController(Controller):
     @get("/register_service", sync_to_thread=False)
     def register_service(self) -> dict:
         return {
-            "name": "BlueBoat GPS & Mode Control",
-            "description": "Displays GPS position and lets you switch vehicle modes",
+            "name": "Test GPS",
+            "description": "Control of Waypoints and Mode",
             "icon": "mdi-map-marker",
-            "company": "Your Company",
+            "company": "URI RCUE Lab",
             "version": "1.0.0",
-            "webpage": "https://example.com",
+            "webpage": "https://github.com/mckenzieezell/Test-Python",
             "api": "",
         }
 
@@ -136,6 +136,72 @@ class ModeController(Controller):
             "mode_name": mode_name.upper(),
         }
 
+class WaypointController(Controller):
+    @post("/waypoint", sync_to_thread=True)
+    def set_waypoint(self, data: dict) -> dict:
+        try:
+            lat = float(data["latitude"])
+            lon = float(data["longitude"])
+        except (KeyError, TypeError, ValueError):
+            return {"status": "error", "message": "latitude and longitude are required"}
+
+        # The vehicle only accepts SET_POSITION_TARGET_GLOBAL_INT while in GUIDED,
+        # so switch modes first (same COMMAND_LONG pattern as ModeController.set_mode)
+        mode_payload = {
+            "header": {"system_id": 255, "component_id": 0, "sequence": 0},
+            "message": {
+                "type": "COMMAND_LONG",
+                "param1": 1,
+                "param2": ROVER_MODES["guided"],
+                "param3": 0,
+                "param4": 0,
+                "param5": 0,
+                "param6": 0,
+                "param7": 0,
+                "command": {"type": "MAV_CMD_DO_SET_MODE"},
+                "target_system": 1,
+                "target_component": 1,
+                "confirmation": 0,
+            },
+        }
+        mode_response = requests.post(f"{MAVLINK2REST_BASE}/mavlink", json=mode_payload)
+        mode_response.raise_for_status()
+
+        # POSITION_TARGET_TYPEMASK bits: ignore vx,vy,vz,afx,afy,afz,yaw,yaw_rate
+        # (8+16+32+64+128+256+1024+2048 = 0x0DF8) -> only lat/lon/alt are used
+        POSITION_ONLY_TYPE_MASK = 0x0DF8
+
+        waypoint_payload = {
+            "header": {"system_id": 255, "component_id": 0, "sequence": 0},
+            "message": {
+                "type": "SET_POSITION_TARGET_GLOBAL_INT",
+                "time_boot_ms": 0,
+                "target_system": 1,
+                "target_component": 1,
+                "coordinate_frame": {"type": "MAV_FRAME_GLOBAL_RELATIVE_ALT"},
+                "type_mask": POSITION_ONLY_TYPE_MASK,
+                "lat_int": int(lat * 1e7),
+                "lon_int": int(lon * 1e7),
+                "alt": 0,
+                "vx": 0,
+                "vy": 0,
+                "vz": 0,
+                "afx": 0,
+                "afy": 0,
+                "afz": 0,
+                "yaw": 0,
+                "yaw_rate": 0,
+            },
+        }
+
+        response = requests.post(f"{MAVLINK2REST_BASE}/mavlink", json=waypoint_payload)
+        response.raise_for_status()
+
+        return {
+            "status": "ok",
+            "latitude": lat,
+            "longitude": lon,
+        }
 
 app = Litestar(
     route_handlers=[
@@ -143,5 +209,6 @@ app = Litestar(
         RegisterServiceController,
         GPSController,
         ModeController,
+        WaypointController,
     ],
 )
