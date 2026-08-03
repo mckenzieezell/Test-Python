@@ -146,8 +146,6 @@ class WaypointController(Controller):
         except (KeyError, TypeError, ValueError):
             return {"status": "error", "message": "latitude and longitude are required"}
 
-        # The vehicle only accepts SET_POSITION_TARGET_GLOBAL_INT while in GUIDED,
-        # so switch modes first (same COMMAND_LONG pattern as ModeController.set_mode)
         mode_payload = {
             "header": {"system_id": 255, "component_id": 0, "sequence": 0},
             "message": {
@@ -165,11 +163,16 @@ class WaypointController(Controller):
                 "confirmation": 0,
             },
         }
-        mode_response = requests.post(f"{MAVLINK2REST_BASE}/mavlink", json=mode_payload)
-        mode_response.raise_for_status()
+        try:
+            mode_response = requests.post(f"{MAVLINK2REST_BASE}/mavlink", json=mode_payload)
+            mode_response.raise_for_status()
+        except requests.HTTPError as e:
+            return {
+                "status": "error",
+                "message": f"mode switch failed: {e}",
+                "mavlink2rest_response": mode_response.text,
+            }
 
-        # POSITION_TARGET_TYPEMASK bits: ignore vx,vy,vz,afx,afy,afz,yaw,yaw_rate
-        # (8+16+32+64+128+256+1024+2048 = 0x0DF8) -> only lat/lon/alt are used
         POSITION_ONLY_TYPE_MASK = 0x0DF8
 
         waypoint_payload = {
@@ -195,16 +198,22 @@ class WaypointController(Controller):
             },
         }
 
-        response = requests.post(f"{MAVLINK2REST_BASE}/mavlink", json=waypoint_payload)
-        response.raise_for_status()
+        try:
+            response = requests.post(f"{MAVLINK2REST_BASE}/mavlink", json=waypoint_payload)
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            return {
+                "status": "error",
+                "message": f"waypoint send failed: {e}",
+                "mavlink2rest_response": response.text,
+            }
 
         return {
             "status": "ok",
             "latitude": lat,
             "longitude": lon,
         }
-
-
+        
 class StopController(Controller):
     @post("/stop", sync_to_thread=True)
     def stop(self) -> dict:
