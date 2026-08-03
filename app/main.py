@@ -146,6 +146,29 @@ class WaypointController(Controller):
         except (KeyError, TypeError, ValueError):
             return {"status": "error", "message": "latitude and longitude are required"}
 
+        # Check for GPS fix before doing anything else
+        try:
+            gps_response = requests.get(
+                f"{MAVLINK2REST_BASE}/mavlink/vehicles/1/components/1/messages/GLOBAL_POSITION_INT"
+            )
+            gps_response.raise_for_status()
+            gps_message = gps_response.json()["message"]
+            current_lat = gps_message["lat"] / 1e7
+            current_lon = gps_message["lon"] / 1e7
+            has_fix = not (current_lat == 0 and current_lon == 0)
+        except (requests.HTTPError, requests.ConnectionError, KeyError) as e:
+            return {
+                "status": "error",
+                "message": f"could not check GPS status: {e}",
+            }
+
+        if not has_fix:
+            return {
+                "status": "error",
+                "message": "no GPS fix — vehicle needs a GPS lock before it can navigate to a waypoint",
+            }
+
+        # Mode switch to GUIDED (same COMMAND_LONG pattern as ModeController.set_mode)
         mode_payload = {
             "header": {"system_id": 255, "component_id": 0, "sequence": 0},
             "message": {
@@ -173,6 +196,7 @@ class WaypointController(Controller):
                 "mavlink2rest_response": mode_response.text,
             }
 
+        # POSITION_TARGET_TYPEMASK bits: ignore vx,vy,vz,afx,afy,afz,yaw,yaw_rate
         POSITION_ONLY_TYPE_MASK = 0x0DF8
 
         waypoint_payload = {
