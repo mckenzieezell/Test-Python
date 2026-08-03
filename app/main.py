@@ -39,12 +39,12 @@ class RegisterServiceController(Controller):
     @get("/register_service", sync_to_thread=False)
     def register_service(self) -> dict:
         return {
-            "name": "Test GPS",
-            "description": "Control of Waypoints and Mode",
+            "name": "BlueBoat GPS & Mode Control",
+            "description": "Displays GPS position and lets you switch vehicle modes",
             "icon": "mdi-map-marker",
-            "company": "URI RCUE Lab",
+            "company": "Your Company",
             "version": "1.0.0",
-            "webpage": "https://github.com/mckenzieezell/Test-Python",
+            "webpage": "https://example.com",
             "api": "",
         }
 
@@ -136,6 +136,7 @@ class ModeController(Controller):
             "mode_name": mode_name.upper(),
         }
 
+
 class WaypointController(Controller):
     @post("/waypoint", sync_to_thread=True)
     def set_waypoint(self, data: dict) -> dict:
@@ -203,6 +204,57 @@ class WaypointController(Controller):
             "longitude": lon,
         }
 
+
+class StopController(Controller):
+    @post("/stop", sync_to_thread=True)
+    def stop(self) -> dict:
+        # HOLD mode: stop navigating to any target, hold current position
+        payload = {
+            "header": {"system_id": 255, "component_id": 0, "sequence": 0},
+            "message": {
+                "type": "COMMAND_LONG",
+                "param1": 1,
+                "param2": ROVER_MODES["hold"],
+                "param3": 0,
+                "param4": 0,
+                "param5": 0,
+                "param6": 0,
+                "param7": 0,
+                "command": {"type": "MAV_CMD_DO_SET_MODE"},
+                "target_system": 1,
+                "target_component": 1,
+                "confirmation": 0,
+            },
+        }
+        response = requests.post(f"{MAVLINK2REST_BASE}/mavlink", json=payload)
+        response.raise_for_status()
+        return {"status": "ok", "mode": "HOLD"}
+
+    @post("/disarm", sync_to_thread=True)
+    def disarm(self) -> dict:
+        # MAV_CMD_COMPONENT_ARM_DISARM, param1=0 -> disarm
+        payload = {
+            "header": {"system_id": 255, "component_id": 0, "sequence": 0},
+            "message": {
+                "type": "COMMAND_LONG",
+                "param1": 0,  # 0 = disarm, 1 = arm
+                "param2": 0,
+                "param3": 0,
+                "param4": 0,
+                "param5": 0,
+                "param6": 0,
+                "param7": 0,
+                "command": {"type": "MAV_CMD_COMPONENT_ARM_DISARM"},
+                "target_system": 1,
+                "target_component": 1,
+                "confirmation": 0,
+            },
+        }
+        response = requests.post(f"{MAVLINK2REST_BASE}/mavlink", json=payload)
+        response.raise_for_status()
+        return {"status": "ok", "action": "disarmed"}
+
+
 app = Litestar(
     route_handlers=[
         IndexController,
@@ -210,5 +262,6 @@ app = Litestar(
         GPSController,
         ModeController,
         WaypointController,
+        StopController,
     ],
 )
