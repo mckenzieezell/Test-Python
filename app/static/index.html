@@ -4,6 +4,12 @@
 </head>
 <body>
     <h1>Display of MAVLink Data</h1>
+
+    <button id="stop_button" onclick="emergencyStop()" style="background:#c0392b;color:white;font-weight:bold;font-size:1.2em;padding:10px 20px;">
+        STOP
+    </button>
+    <p id="stop_status"></p>
+
     <h2>Global Position Data</h2>
     <h3>
         Heading: <span id="hdg">--.-</span> <br>
@@ -15,6 +21,7 @@
         <span id="last_gps">--.-</span>
         seconds ago
     </h3>
+
     <h2>Vehicle Mode</h2>
     <h3>
         Current mode: <span id="current_mode">--</span>
@@ -129,6 +136,21 @@
                 document.getElementById("wp_lat").value = lastGPS.latitude.toFixed(6);
                 document.getElementById("wp_lon").value = lastGPS.longitude.toFixed(6);
             }
+        }
+
+        async function emergencyStop() {
+            const statusEl = document.getElementById("stop_status");
+            statusEl.textContent = "Stopping...";
+            try {
+                const response = await fetch("/disarm", { method: "POST" });
+                if (!response.ok) throw new Error(`Status ${response.status}`);
+                const data = await response.json();
+                statusEl.textContent = "Disarmed";
+            } catch (err) {
+                statusEl.textContent = `Failed to stop: ${err}`;
+                console.error("Failed to disarm:", err);
+            }
+            setTimeout(updateCurrentMode, 500);
         }
 
         updateGPS();
