@@ -5,7 +5,7 @@ from litestar import Litestar, get, post
 from litestar.controller import Controller
 from litestar.response import Response
 
-MAVLINK2REST_BASE = "http://host.docker.internal/mavlink2rest"
+MAVLINK2REST_BASE = "http://host.docker.internal/mavlink2rest/v1"
 
 # ArduRover custom mode numbers
 ROVER_MODES = {
