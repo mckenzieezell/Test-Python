@@ -144,7 +144,10 @@ class WaypointController(Controller):
             lat = float(data["latitude"])
             lon = float(data["longitude"])
         except (KeyError, TypeError, ValueError):
-            return {"status": "error", "message": "latitude and longitude are required"}
+            return {
+                "status": "error",
+                "message": "latitude and longitude are required",
+            }
 
         # Check for GPS fix before doing anything else
         try:
@@ -153,9 +156,11 @@ class WaypointController(Controller):
             )
             gps_response.raise_for_status()
             gps_message = gps_response.json()["message"]
+
             current_lat = gps_message["lat"] / 1e7
             current_lon = gps_message["lon"] / 1e7
             has_fix = not (current_lat == 0 and current_lon == 0)
+
         except (requests.HTTPError, requests.ConnectionError, KeyError) as e:
             return {
                 "status": "error",
@@ -168,9 +173,13 @@ class WaypointController(Controller):
                 "message": "no GPS fix — vehicle needs a GPS lock before it can navigate to a waypoint",
             }
 
-        # Mode switch to GUIDED (same COMMAND_LONG pattern as ModeController.set_mode)
+        # Switch to GUIDED mode
         mode_payload = {
-            "header": {"system_id": 255, "component_id": 0, "sequence": 0},
+            "header": {
+                "system_id": 255,
+                "component_id": 0,
+                "sequence": 0,
+            },
             "message": {
                 "type": "COMMAND_LONG",
                 "param1": 1,
@@ -180,15 +189,22 @@ class WaypointController(Controller):
                 "param5": 0,
                 "param6": 0,
                 "param7": 0,
-                "command": {"type": "MAV_CMD_DO_SET_MODE"},
+                "command": {
+                    "type": "MAV_CMD_DO_SET_MODE"
+                },
                 "target_system": 1,
                 "target_component": 1,
                 "confirmation": 0,
             },
         }
+
         try:
-            mode_response = requests.post(f"{MAVLINK2REST_BASE}/mavlink", json=mode_payload)
+            mode_response = requests.post(
+                f"{MAVLINK2REST_BASE}/mavlink",
+                json=mode_payload,
+            )
             mode_response.raise_for_status()
+
         except requests.HTTPError as e:
             return {
                 "status": "error",
@@ -196,18 +212,27 @@ class WaypointController(Controller):
                 "mavlink2rest_response": mode_response.text,
             }
 
-        # POSITION_TARGET_TYPEMASK bits: ignore vx,vy,vz,afx,afy,afz,yaw,yaw_rate
+        # POSITION_TARGET_TYPEMASK bits:
+        # ignore vx, vy, vz, afx, afy, afz, yaw, yaw_rate
         POSITION_ONLY_TYPE_MASK = 0x0DF8
 
         waypoint_payload = {
-            "header": {"system_id": 255, "component_id": 0, "sequence": 0},
+            "header": {
+                "system_id": 255,
+                "component_id": 0,
+                "sequence": 0,
+            },
             "message": {
                 "type": "SET_POSITION_TARGET_GLOBAL_INT",
                 "time_boot_ms": 0,
                 "target_system": 1,
                 "target_component": 1,
-                "coordinate_frame": {"type": "MAV_FRAME_GLOBAL_RELATIVE_ALT"},
-                "type_mask": POSITION_ONLY_TYPE_MASK,
+                "coordinate_frame": {
+                    "type": "MAV_FRAME_GLOBAL_RELATIVE_ALT"
+                },
+                "type_mask": {
+                    "bits": POSITION_ONLY_TYPE_MASK
+                },
                 "lat_int": int(lat * 1e7),
                 "lon_int": int(lon * 1e7),
                 "alt": 0,
@@ -223,8 +248,12 @@ class WaypointController(Controller):
         }
 
         try:
-            response = requests.post(f"{MAVLINK2REST_BASE}/mavlink", json=waypoint_payload)
+            response = requests.post(
+                f"{MAVLINK2REST_BASE}/mavlink",
+                json=waypoint_payload,
+            )
             response.raise_for_status()
+
         except requests.HTTPError as e:
             return {
                 "status": "error",
