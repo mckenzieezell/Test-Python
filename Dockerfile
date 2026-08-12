@@ -10,7 +10,29 @@ LABEL version="0.0.3"
 
 ARG IMAGE_NAME
 
-LABEL permissions='{"ExposedPorts":{"8000/tcp":{}},"HostConfig":{"Privileged":true,"Binds":["/usr/blueos/extensions/$IMAGE_NAME:/app","/dev:/dev"],"ExtraHosts":["host.docker.internal:host-gateway"],"PortBindings":{"8000/tcp":[{"HostPort":""}]}}}'
+LABEL permissions='\
+{
+  "ExposedPorts": {
+    "8000/tcp": {}
+  },
+  "HostConfig": {
+    "Privileged": true,
+    "Binds": [
+      "/usr/blueos/extensions/$IMAGE_NAME:/app",
+      "/dev:/dev"
+    ],
+    "ExtraHosts": [
+      "host.docker.internal:host-gateway"
+    ],
+    "PortBindings": {
+      "8000/tcp": [
+        {
+          "HostPort": ""
+        }
+      ]
+    }
+  }
+}'
 
 ARG AUTHOR
 ARG AUTHOR_EMAIL
