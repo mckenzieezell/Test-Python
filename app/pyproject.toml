@@ -11,5 +11,6 @@ dependencies = [
     "requests",
     "litestar",
     "uvicorn",
+    "pyserial",
 ]
 
