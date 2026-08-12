@@ -5,6 +5,8 @@ from litestar import Litestar, get, post
 from litestar.controller import Controller
 from litestar.response import Response
 
+from swarm import swarm_listener
+
 MAVLINK2REST_BASE = "http://host.docker.internal/mavlink2rest/v1"
 
 # ArduRover custom mode numbers
@@ -40,7 +42,7 @@ class RegisterServiceController(Controller):
     def register_service(self) -> dict:
         return {
             "name": "Test GPS",
-            "description": "Displays GPS position and lets you switch vehicle modes",
+            "description": "Displays GPS position, lets you switch vehicle modes, and shows live LoRa/TDMA swarm positions",
             "icon": "mdi-map-marker",
             "company": "URI RCUE Lab",
             "version": "1.0.0",
@@ -266,7 +268,7 @@ class WaypointController(Controller):
             "latitude": lat,
             "longitude": lon,
         }
-        
+
 class StopController(Controller):
     @post("/stop", sync_to_thread=True)
     def stop(self) -> dict:
@@ -317,6 +319,21 @@ class StopController(Controller):
         return {"status": "ok", "action": "disarmed"}
 
 
+class SwarmController(Controller):
+    @get("/swarm", sync_to_thread=False)
+    def get_swarm(self) -> dict:
+        """Latest known position/status for every module heard over the LoRa/TDMA link."""
+        return swarm_listener.snapshot()
+
+
+def start_swarm_listener() -> None:
+    swarm_listener.start()
+
+
+def stop_swarm_listener() -> None:
+    swarm_listener.stop()
+
+
 app = Litestar(
     route_handlers=[
         IndexController,
@@ -325,5 +342,8 @@ app = Litestar(
         ModeController,
         WaypointController,
         StopController,
+        SwarmController,
     ],
+    on_startup=[start_swarm_listener],
+    on_shutdown=[stop_swarm_listener],
 )
