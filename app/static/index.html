@@ -1,6 +1,16 @@
 <html>
 <head>
     <title>MAVLink example</title>
+    <style>
+        table { border-collapse: collapse; margin-top: 8px; }
+        th, td { border: 1px solid #999; padding: 4px 10px; text-align: left; font-family: monospace; }
+        th { background: #eee; }
+        tr.stale { color: #999; }
+        tr.tx { background: #eaf6ea; }
+        tr.rx { background: #eef3fb; }
+        #swarm_conn_status.ok { color: #1a7a1a; }
+        #swarm_conn_status.bad { color: #c0392b; }
+    </style>
 </head>
 <body>
     <h1>Display of MAVLink Data</h1>
@@ -27,6 +37,29 @@
     <button onclick="useCurrentPositionAsWaypoint()">Fill with current position</button>
     <p id="waypoint_status"></p>
 
+    <h2>Swarm Modules (LoRa / TDMA)</h2>
+    <p>
+        Link status: <span id="swarm_conn_status">--</span>
+        <span id="swarm_port_label"></span>
+    </p>
+    <table id="swarm_table">
+        <thead>
+            <tr>
+                <th>Module</th>
+                <th>Addr</th>
+                <th>#</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Module Time (UTC)</th>
+                <th>Heard As</th>
+                <th>Last Seen</th>
+            </tr>
+        </thead>
+        <tbody id="swarm_tbody">
+            <tr><td colspan="8">Waiting for data...</td></tr>
+        </tbody>
+    </table>
+    
     <h2>Global Position Data</h2>
     <h3>
         Heading: <span id="hdg">--.-</span> <br>
@@ -153,11 +186,56 @@
             setTimeout(updateCurrentMode, 500);
         }
 
+        async function updateSwarm() {
+            const connEl = document.getElementById("swarm_conn_status");
+            const portEl = document.getElementById("swarm_port_label");
+            const tbody = document.getElementById("swarm_tbody");
+
+            try {
+                const response = await fetch("/swarm");
+                if (!response.ok) throw new Error(`Status ${response.status}`);
+                const data = await response.json();
+
+                if (data.connected) {
+                    connEl.textContent = "connected";
+                    connEl.className = "ok";
+                } else {
+                    connEl.textContent = data.last_error ? `disconnected (${data.last_error})` : "disconnected";
+                    connEl.className = "bad";
+                }
+                portEl.textContent = `[${data.port}]`;
+
+                if (!data.modules || data.modules.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8">No modules heard yet</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.modules.map(m => `
+                    <tr class="${m.stale ? 'stale' : m.direction}">
+                        <td>${m.module}</td>
+                        <td>${m.address}</td>
+                        <td>${m.counter}</td>
+                        <td>${m.latitude.toFixed(6)}</td>
+                        <td>${m.longitude.toFixed(6)}</td>
+                        <td>${m.utc_time}</td>
+                        <td>${m.direction.toUpperCase()}</td>
+                        <td>${m.seconds_ago}s ago</td>
+                    </tr>
+                `).join("");
+            } catch (err) {
+                connEl.textContent = "error reaching extension";
+                connEl.className = "bad";
+                console.error("Failed to update swarm data:", err);
+            }
+        }
+
         updateGPS();
         updateCurrentMode();
+        updateSwarm();
         setInterval(updateGPS, 1000);
         setInterval(updateLastGPS, 100);
         setInterval(updateCurrentMode, 1000);
+        setInterval(updateSwarm, 1000);
     </script>
 </body>
 </html>
