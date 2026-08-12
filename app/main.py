@@ -326,12 +326,12 @@ class SwarmController(Controller):
         return swarm_listener.snapshot()
 
 
-def start_swarm_listener() -> None:
-    swarm_listener.start()
+    def start_swarm_listener() -> None:
+        swarm_listener.start()
 
 
-def stop_swarm_listener() -> None:
-    swarm_listener.stop()
+    def stop_swarm_listener() -> None:
+        swarm_listener.stop()
 
 
 app = Litestar(
