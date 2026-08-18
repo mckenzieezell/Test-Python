@@ -1,0 +1,9 @@
+{
+    "name":"Listening-Directing",
+    "description":"Listening to GPS and inserting waypoints",
+    "icon":"mdi-clock-fast",
+    "company":"RCUE UIR",
+    "version":"1.0.0",
+    "webpage":"https://github.com/mckenzieezell/Listening-Directing",
+    "api":""
+ }
