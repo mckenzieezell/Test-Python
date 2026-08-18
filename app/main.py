@@ -44,7 +44,7 @@ class RegisterServiceController(Controller):
             "icon": "mdi-map-marker",
             "company": "URI RCUE Lab",
             "version": "1.0.0",
-            "webpage": "https://github.com/mckenzieezell/Test-Python",
+            "webpage": "https://github.com/mckenzieezell/Listening-Directing",
             "api": "",
         }
 
