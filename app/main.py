@@ -5,8 +5,6 @@ from litestar import Litestar, get, post
 from litestar.controller import Controller
 from litestar.response import Response
 
-from swarm import swarm_listener
-
 MAVLINK2REST_BASE = "http://host.docker.internal/mavlink2rest/v1"
 
 # ArduRover custom mode numbers
