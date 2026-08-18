@@ -39,12 +39,12 @@ class RegisterServiceController(Controller):
     @get("/register_service", sync_to_thread=False)
     def register_service(self) -> dict:
         return {
-            "name": "Listening-Directing",
-            "description": "Displays GPS position, lets you switch vehicle modes.",
+            "name": "Test GPS",
+            "description": "Displays GPS position and lets you switch vehicle modes",
             "icon": "mdi-map-marker",
             "company": "URI RCUE Lab",
             "version": "1.0.0",
-            "webpage": "https://github.com/mckenzieezell/Listening-Directing",
+            "webpage": "https://github.com/mckenzieezell/Test-Python",
             "api": "",
         }
 
@@ -266,7 +266,7 @@ class WaypointController(Controller):
             "latitude": lat,
             "longitude": lon,
         }
-
+        
 class StopController(Controller):
     @post("/stop", sync_to_thread=True)
     def stop(self) -> dict:
@@ -317,7 +317,6 @@ class StopController(Controller):
         return {"status": "ok", "action": "disarmed"}
 
 
-
 app = Litestar(
     route_handlers=[
         IndexController,
@@ -326,4 +325,5 @@ app = Litestar(
         ModeController,
         WaypointController,
         StopController,
+    ],
 )
