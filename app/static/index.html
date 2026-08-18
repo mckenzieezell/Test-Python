@@ -153,56 +153,11 @@
             setTimeout(updateCurrentMode, 500);
         }
 
-        async function updateSwarm() {
-            const connEl = document.getElementById("swarm_conn_status");
-            const portEl = document.getElementById("swarm_port_label");
-            const tbody = document.getElementById("swarm_tbody");
-
-            try {
-                const response = await fetch("/swarm");
-                if (!response.ok) throw new Error(`Status ${response.status}`);
-                const data = await response.json();
-
-                if (data.connected) {
-                    connEl.textContent = "connected";
-                    connEl.className = "ok";
-                } else {
-                    connEl.textContent = data.last_error ? `disconnected (${data.last_error})` : "disconnected";
-                    connEl.className = "bad";
-                }
-                portEl.textContent = `[${data.port}]`;
-
-                if (!data.modules || data.modules.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8">No modules heard yet</td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = data.modules.map(m => `
-                    <tr class="${m.stale ? 'stale' : m.direction}">
-                        <td>${m.module}</td>
-                        <td>${m.address}</td>
-                        <td>${m.counter}</td>
-                        <td>${m.latitude.toFixed(6)}</td>
-                        <td>${m.longitude.toFixed(6)}</td>
-                        <td>${m.utc_time}</td>
-                        <td>${m.direction.toUpperCase()}</td>
-                        <td>${m.seconds_ago}s ago</td>
-                    </tr>
-                `).join("");
-            } catch (err) {
-                connEl.textContent = "error reaching extension";
-                connEl.className = "bad";
-                console.error("Failed to update swarm data:", err);
-            }
-        }
-
         updateGPS();
         updateCurrentMode();
-        updateSwarm();
         setInterval(updateGPS, 1000);
         setInterval(updateLastGPS, 100);
         setInterval(updateCurrentMode, 1000);
-        setInterval(updateSwarm, 1000);
     </script>
 </body>
 </html>
