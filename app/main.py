@@ -319,20 +319,6 @@ class StopController(Controller):
         return {"status": "ok", "action": "disarmed"}
 
 
-class SwarmController(Controller):
-    @get("/swarm", sync_to_thread=False)
-    def get_swarm(self) -> dict:
-        """Latest known position/status for every module heard over the LoRa/TDMA link."""
-        return swarm_listener.snapshot()
-
-
-    def start_swarm_listener() -> None:
-        swarm_listener.start()
-
-
-    def stop_swarm_listener() -> None:
-        swarm_listener.stop()
-
 
 app = Litestar(
     route_handlers=[
@@ -342,8 +328,4 @@ app = Litestar(
         ModeController,
         WaypointController,
         StopController,
-        SwarmController,
-    ],
-    on_startup=[start_swarm_listener],
-    on_shutdown=[stop_swarm_listener],
 )
