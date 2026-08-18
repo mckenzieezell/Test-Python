@@ -39,12 +39,12 @@ class RegisterServiceController(Controller):
     @get("/register_service", sync_to_thread=False)
     def register_service(self) -> dict:
         return {
-            "name": "Test GPS",
-            "description": "Displays GPS position and lets you switch vehicle modes",
+            "name": "Listening-Directing",
+            "description": "Displays GPS position and lets you inject waypoints",
             "icon": "mdi-map-marker",
             "company": "URI RCUE Lab",
             "version": "1.0.0",
-            "webpage": "https://github.com/mckenzieezell/Test-Python",
+            "webpage": "https://github.com/mckenzieezell/Listening-Directing",
             "api": "",
         }
 
